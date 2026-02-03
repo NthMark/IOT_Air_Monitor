@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Glass Monitor & Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --neon-blue: #00f2ff;
+            --neon-purple: #bc13fe;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .logo-icon { font-size: 1.8rem; color: var(--neon-blue); }
+
+        h1 {
+            font-size: 1.5rem; margin: 0; font-weight: 700;
+            background: linear-gradient(to right, #fff, #a0a0a0);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .status-pill {
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            color: var(--neon-blue);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .grid-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+
+        .glass-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.3); }
+
+        .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .card-label { color: var(--text-secondary); font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+        .card-value { font-size: 3rem; font-weight: 700; margin: 5px 0; letter-spacing: -1px; }
+
+        .val-pm25 { background: linear-gradient(to right, #00f2ff, #00c6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .val-co { background: linear-gradient(to right, #bc13fe, #7b4397); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .card-icon { width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+        .bg-icon-pm { background: rgba(0, 242, 255, 0.1); color: var(--neon-blue); }
+        .bg-icon-co { background: rgba(188, 19, 254, 0.1); color: var(--neon-purple); }
+
+        .grid-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .chart-container { height: 350px; display: flex; flex-direction: column; }
+        .chart-title { margin-bottom: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+
+        #btn-fan { transition: all 0.3s ease; }
+        #btn-fan:active { transform: scale(0.95); }
+
+        @media (max-width: 900px) { .grid-charts { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo-area">
+            <i class="fa-solid fa-atom logo-icon fa-spin" style="--fa-animation-duration: 15s;"></i>
+            <div>
+                <h1>HỆ THỐNG GIÁM SÁT IoT</h1>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Dashboard Quản Lý Môi Trường</span>
+            </div>
+        </div>
+        <div class="status-pill"><i class="fa-solid fa-wifi"></i> Live Connected</div>
+    </header>
+
+    <div class="grid-stats">
+        <div class="glass-card">
+            <div class="card-head">
+                <span class="card-label">Bụi Mịn PM2.5</span>
+                <div class="card-icon bg-icon-pm"><i class="fa-solid fa-lungs-virus"></i></div>
+            </div>
+            <div class="card-value val-pm25" id="pm25-val">--</div>
+            <div style="font-size: 0.8rem; color: #a0a0a0;">mg/m³</div>
+        </div>
+
+        <div class="glass-card">
+            <div class="card-head">
+                <span class="card-label">Khí Độc CO</span>
+                <div class="card-icon bg-icon-co"><i class="fa-solid fa-skull-crossbones"></i></div>
+            </div>
+            <div class="card-value val-co" id="co-val">--</div>
+            <div style="font-size: 0.8rem; color: #a0a0a0;">ppm</div>
+        </div>
+
+        <div class="glass-card">
+            <div class="card-head">
+                <span class="card-label">Điều khiển Quạt</span>
+                <div class="card-icon bg-icon-co" id="fan-icon-bg"><i class="fa-solid fa-fan" id="fan-icon"></i></div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 10px;">
+                <div class="card-value" id="fan-status-text" style="font-size: 2rem;">OFF</div>
+                <button id="btn-fan" style="background: var(--neon-purple); color: white; border: none; padding: 10px 25px; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 0 15px var(--neon-purple);">
+                    THAY ĐỔI TRẠNG THÁI
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-charts">
+        <div class="glass-card chart-container">
+            <div class="chart-title" style="color: var(--neon-blue)"><i class="fa-solid fa-chart-area"></i> Biểu đồ PM2.5</div>
+            <div style="flex: 1; position: relative;"><canvas id="pm25Chart"></canvas></div>
+        </div>
+        <div class="glass-card chart-container">
+            <div class="chart-title" style="color: var(--neon-purple)"><i class="fa-solid fa-chart-line"></i> Biểu đồ khí CO</div>
+            <div style="flex: 1; position: relative;"><canvas id="coChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAiVYoH2EGOkq9aobaO7fuYK-cTUrHqF5I",
+        authDomain: "iotsensor-943bb.firebaseapp.com",
+        databaseURL: "https://iotsensor-943bb-default-rtdb.firebaseio.com",
+        projectId: "iotsensor-943bb",
+        storageBucket: "iotsensor-943bb.firebasestorage.app",
+        messagingSenderId: "142460997173",
+        appId: "1:142460997173:web:29bd1df28fdfc24ece2b7c",
+        measurementId: "G-PRQ1X5QEX7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let currentPM25 = 0;
+    let currentCO = 0;
+    let fanState = 0;
+
+    // --- CHART CONFIG ---
+    const commonOptions = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: '#a0a0a0' }, grid: { display: false } },
+            y: { ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+        }
+    };
+
+    const createChart = (id, color, gradColor) => {
+        const ctx = document.getElementById(id).getContext('2d');
+        const grad = ctx.createLinearGradient(0,0,0,300);
+        grad.addColorStop(0, gradColor); grad.addColorStop(1, 'transparent');
+        return new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ borderColor: color, backgroundColor: grad, fill: true, tension: 0.4, data: [], pointRadius: 0 }] },
+            options: commonOptions
+        });
+    };
+
+    const pm25Chart = createChart('pm25Chart', '#00f2ff', 'rgba(0, 242, 255, 0.3)');
+    const coChart = createChart('coChart', '#bc13fe', 'rgba(188, 19, 254, 0.3)');
+
+    // --- REALTIME DATA (READ) ---
+    onValue(ref(db, 'SensorData'), (snapshot) => {
+        const data = snapshot.val();
+        if(data) {
+            currentPM25 = parseFloat(data.PM25 || 0);
+            currentCO = parseFloat(data.CO || 0);
+            document.getElementById('pm25-val').innerText = currentPM25.toFixed(2);
+            document.getElementById('co-val').innerText = currentCO.toFixed(2);
+        }
+    });
+
+    // --- FAN CONTROL (READ/WRITE) ---
+    const fanBtn = document.getElementById('btn-fan');
+    const fanStatusText = document.getElementById('fan-status-text');
+    const fanIcon = document.getElementById('fan-icon');
+    const fanRef = ref(db, 'Control/FanStatus');
+
+    onValue(fanRef, (snapshot) => {
+        fanState = snapshot.val() || 0;
+        if (fanState === 1) {
+            fanStatusText.innerText = "ON"; fanStatusText.style.color = "var(--neon-blue)";
+            fanIcon.classList.add('fa-spin'); fanBtn.style.background = "var(--neon-blue)";
+        } else {
+            fanStatusText.innerText = "OFF"; fanStatusText.style.color = "var(--text-secondary)";
+            fanIcon.classList.remove('fa-spin'); fanBtn.style.background = "var(--neon-purple)";
+        }
+    });
+
+    fanBtn.addEventListener('click', () => {
+        set(fanRef, fanState === 1 ? 0 : 1);
+    });
+
+    // --- CHART UPDATE LOOP ---
+    setInterval(() => {
+        const now = new Date().toLocaleTimeString('vi-VN');
+        const update = (chart, val) => {
+            chart.data.labels.push(now); chart.data.datasets[0].data.push(val);
+            if (chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+            chart.update('none');
+        };
+        update(pm25Chart, currentPM25); update(coChart, currentCO);
+    }, 2000);
+</script>
+</body>
+</html>
