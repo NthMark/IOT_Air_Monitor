@@ -1,4 +1,4 @@
-# IOT AIR MONITOR
+# robot_agv_uwb
 
 STM32F103C8T6 firmware for multi‑sensor logging (UART debug) plus an ESP32 gateway
 that filters logs and forwards only valid readings.
@@ -9,7 +9,17 @@ that filters logs and forwards only valid readings.
 - `robot_agv/shared/Middle/sensor/` — sensor drivers.
 - `robot_agv/shared/Middle/lcd/` — I2C LCD driver.
 - `robot_agv/shared/Middle/debug/` — logger (USART2 + DMA) and HC‑05 RX parsing.
-- `gateway/` — ESP32 Arduino sketches to filter STM32 logs.
+- `gateway/` — ESP32 Arduino sketches to filter STM32 logs and forward data.
+
+## Gateway folder (ESP32)
+
+The `gateway/` folder contains Arduino IDE sketches for ESP32:
+
+- `gateway.ino` — Connects to HC‑05 over Bluetooth SPP and filters STM32 logs
+  into compact sensor outputs (CO/CO2/PM2.5/LIGHT/TEMP/HUM) on USB Serial.
+- `gateway2.ino` — Example that additionally pushes data to Firebase.
+
+Open either sketch directly in Arduino IDE and select your ESP32 board.
 
 ## Build (STM32)
 
@@ -108,4 +118,3 @@ STM32 listens on USART2 RX for text commands (case‑insensitive):
 - `Status : On` / `Status : Off`
 
 On match, the MOSFET pin `PA5` is toggled.
-
